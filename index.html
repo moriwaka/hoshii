@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e7392f">
+  <title>5000兆円欲しいメーカー</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">ORIGINAL TEXT IMAGE MAKER</p>
+      <h1 id="page-title">5000兆円欲しいメーカー</h1>
+      <p>好きな金額や言葉を、景気のよい立体文字画像に。すべてブラウザ内で作成します。</p>
+    </section>
+
+    <section class="maker" aria-label="画像作成">
+      <form class="controls" id="maker-form">
+        <label for="amount">金額・文字</label>
+        <div class="input-row">
+          <input id="amount" name="amount" type="text" value="5000兆円" autocomplete="off" maxlength="40" aria-describedby="input-help">
+          <button type="button" class="sample-button" id="sample-button">例を入れる</button>
+        </div>
+        <p id="input-help" class="help">円、万円、億円、兆円のほか、好きな文字を入力できます。</p>
+
+        <label class="toggle-row" for="transparent">
+          <input id="transparent" type="checkbox">
+          <span>背景を透過する</span>
+        </label>
+
+        <button class="download-button" id="download-button" type="button">PNGを保存</button>
+        <p class="notice" id="notice" role="status" aria-live="polite">横長 1600 × 900 px のPNGを作成します</p>
+      </form>
+
+      <section class="preview-panel" aria-labelledby="preview-title">
+        <div class="preview-heading">
+          <h2 id="preview-title">プレビュー</h2>
+          <span>1600 × 900</span>
+        </div>
+        <canvas id="preview" width="1600" height="900" aria-label="作成される画像のプレビュー"></canvas>
+      </section>
+    </section>
+  </main>
+  <footer>このメーカーは、特定の既存ロゴや画像を使用しないオリジナルの文字表現です。</footer>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
