@@ -7,60 +7,86 @@ export function displayText(value) {
   return /欲しい[！!]?$/.test(text) ? text.replace(/！/g, '!') : `${text}欲しい!`;
 }
 
-export function fitFontSize(text, availableWidth, maximum) {
-  const estimatedCharacterWidth = maximum * 0.92;
-  return Math.max(48, Math.min(maximum, Math.floor(availableWidth / Math.max(text.length, 1) / 0.92)));
+export function fitFontSize(text, availableWidth, maximum, measuredWidth) {
+  const width = measuredWidth ?? Math.max(Array.from(text).length, 1) * maximum * .92;
+  return Math.max(1, Math.min(maximum, Math.floor(maximum * availableWidth / Math.max(width, 1))));
 }
 
-function font(size) {
-  return `900 ${size}px "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif`;
+function font(size, silver = false) {
+  return silver
+    ? `900 ${size}px "Noto Serif JP", "Noto Serif CJK JP", "Yu Mincho", serif`
+    : `900 ${size}px "Noto Sans JP", "Noto Sans CJK JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif`;
 }
 
-function drawOutlinedText(ctx, text, x, y, size, fill, angle = 0) {
+function metallicGradient(ctx, top, bottom, colors) {
+  const gradient = ctx.createLinearGradient(0, top, 0, bottom);
+  colors.forEach(([stop, color]) => gradient.addColorStop(stop, color));
+  return gradient;
+}
+
+function drawOutlinedText(ctx, text, x, y, size, silver = false) {
   ctx.save();
   ctx.translate(x, y);
-  ctx.rotate(angle);
-  ctx.font = font(size);
+  ctx.rotate(-.025);
+  ctx.transform(1, 0, -.38, 1, 0, 0);
+  ctx.font = font(size, silver);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round';
-  ctx.strokeStyle = '#201a17';
-  ctx.lineWidth = Math.max(12, size * .11);
+  const metrics = ctx.measureText(text);
+  const top = -metrics.actualBoundingBoxAscent;
+  const bottom = metrics.actualBoundingBoxDescent;
+  const gradient = colors => metallicGradient(ctx, top, bottom, colors);
+  const chrome = gradient([
+    [0, '#f9ffff'], [.18, '#91a6ba'], [.35, '#effbff'], [.47, '#293448'],
+    [.5, '#e1f7ff'], [.73, '#faffff'], [.83, '#6b819a'], [1, '#e2f5ff'],
+  ]);
+  const gold = gradient([
+    [0, '#ffffdc'], [.2, '#ffe651'], [.43, '#ae4300'], [.49, '#fffda4'],
+    [.55, '#fff23d'], [.85, '#e88100'], [1, '#fffbc1'],
+  ]);
+  const depth = Math.max(7, Math.round(size * .065));
+  ctx.lineWidth = size * .13;
+  // Solid extrusion keeps the edges crisp, including on transparent PNGs.
+  for (let offset = depth; offset > 0; offset -= 2) {
+    ctx.strokeStyle = offset > depth - 4 ? '#08090b' : chrome;
+    ctx.strokeText(text, offset * .25, offset);
+    ctx.fillStyle = '#12151a';
+    ctx.fillText(text, offset * .25, offset);
+  }
+
+  for (const [width, color] of [[.13, '#06080c'], [.106, chrome], [.083, '#10151d'], [.062, silver ? chrome : gold], [.034, '#fff9d9'], [.018, silver ? '#35506b' : '#820400']]) {
+    ctx.lineWidth = size * width;
+    ctx.strokeStyle = color;
+    ctx.strokeText(text, 0, 0);
+  }
+  ctx.fillStyle = gradient(silver ? [
+    [0, '#fff'], [.25, '#fff'], [.46, '#d7f0fa'], [.49, '#9fbed0'],
+    [.51, '#f9ffff'], [.78, '#fff'], [1, '#bed9e8'],
+  ] : [
+    [0, '#ff3405'], [.15, '#ff1400'], [.48, '#d00000'], [.49, '#ff2609'],
+    [.62, '#c10000'], [.83, '#570004'], [1, '#070003'],
+  ]);
+  // A narrow matching stroke gives fallback Japanese fonts a heavier face.
+  ctx.strokeStyle = ctx.fillStyle;
+  ctx.lineWidth = size * .012;
   ctx.strokeText(text, 0, 0);
-  ctx.strokeStyle = '#fffaf0';
-  ctx.lineWidth = Math.max(6, size * .045);
-  ctx.strokeText(text, 0, 0);
-  ctx.fillStyle = fill;
   ctx.fillText(text, 0, 0);
   ctx.restore();
 }
 
 function drawBackground(ctx) {
-  ctx.fillStyle = '#f5e6b9';
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  ctx.save();
-  ctx.translate(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
-  for (let i = 0; i < 24; i += 1) {
-    ctx.rotate(Math.PI / 12);
-    ctx.fillStyle = i % 2 ? '#f2bf43' : '#f8d66d';
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(2000, -42);
-    ctx.lineTo(2000, 42);
-    ctx.closePath();
-    ctx.fill();
-  }
-  ctx.restore();
-  ctx.fillStyle = 'rgba(255,255,255,.48)';
+  ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 }
 
-function fittedCanvasSize(ctx, text, width, max) {
-  let size = fitFontSize(text, width, max);
-  ctx.font = font(size);
-  while (ctx.measureText(text).width > width && size > 48) {
-    size -= 2;
-    ctx.font = font(size);
+function fittedCanvasSize(ctx, text, width, max, silver = false) {
+  ctx.font = font(max, silver);
+  let size = fitFontSize(text, width, max, ctx.measureText(text).width);
+  ctx.font = font(size, silver);
+  while (ctx.measureText(text).width > width && size > 1) {
+    size -= 1;
+    ctx.font = font(size, silver);
   }
   return size;
 }
@@ -73,14 +99,10 @@ export function render(canvas, value, transparent) {
   ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   if (!transparent) drawBackground(ctx);
 
-  const mainSize = fittedCanvasSize(ctx, headline, 1360, 245);
-  const shadowSize = Math.max(64, Math.floor(mainSize * .46));
-  ctx.save();
-  ctx.globalAlpha = .25;
-  drawOutlinedText(ctx, headline, 812, 506, mainSize, '#b92323', -.045);
-  ctx.restore();
-  drawOutlinedText(ctx, headline, 790, 462, mainSize, '#e53930', -.045);
-  drawOutlinedText(ctx, '欲しい!', 1045, 672, shadowSize, '#f4bf2e', .08);
+  const mainSize = fittedCanvasSize(ctx, headline, 1270, 320);
+  const suffixSize = fittedCanvasSize(ctx, suffix, 900, 290, true);
+  drawOutlinedText(ctx, headline, 780, 300, mainSize);
+  drawOutlinedText(ctx, suffix, 1010, 610, suffixSize, true);
 }
 
 function setup() {
@@ -106,6 +128,7 @@ function setup() {
     link.click();
     notice.textContent = 'PNGを保存しました';
   });
+  document.fonts.ready.then(update);
   update();
 }
 
