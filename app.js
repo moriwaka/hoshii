@@ -24,6 +24,19 @@ function metallicGradient(ctx, top, bottom, colors) {
   return gradient;
 }
 
+function strokeBevel(ctx, text, size, width, metal, light, dark) {
+  const slope = size * .009;
+  ctx.lineWidth = size * width;
+  // Offset surfaces expose a lit upper-left edge and a shaded lower-right edge.
+  ctx.strokeStyle = dark;
+  ctx.strokeText(text, slope, slope);
+  ctx.strokeStyle = light;
+  ctx.strokeText(text, -slope, -slope);
+  ctx.lineWidth = size * (width - .018);
+  ctx.strokeStyle = metal;
+  ctx.strokeText(text, 0, 0);
+}
+
 function drawOutlinedText(ctx, text, x, y, size, silver = false) {
   ctx.save();
   ctx.translate(x, y);
@@ -38,28 +51,41 @@ function drawOutlinedText(ctx, text, x, y, size, silver = false) {
   const bottom = metrics.actualBoundingBoxDescent;
   const gradient = colors => metallicGradient(ctx, top, bottom, colors);
   const chrome = gradient([
-    [0, '#f9ffff'], [.18, '#91a6ba'], [.35, '#effbff'], [.47, '#293448'],
-    [.5, '#e1f7ff'], [.73, '#faffff'], [.83, '#6b819a'], [1, '#e2f5ff'],
+    [0, '#fff'], [.16, '#5b7188'], [.3, '#edfaff'], [.43, '#131f33'],
+    [.46, '#fff'], [.49, '#fff'], [.52, '#758a9e'],
+    [.68, '#e0eef5'], [.8, '#fff'], [.83, '#364356'], [1, '#c1dbe9'],
   ]);
   const gold = gradient([
-    [0, '#ffffdc'], [.2, '#ffe651'], [.43, '#ae4300'], [.49, '#fffda4'],
-    [.55, '#fff23d'], [.85, '#e88100'], [1, '#fffbc1'],
+    [0, '#fffde8'], [.19, '#ffc52c'], [.36, '#9c3700'], [.43, '#fff8ab'],
+    [.46, '#fff'], [.49, '#ffe148'], [.63, '#d17400'],
+    [.77, '#fff8a4'], [.81, '#fff'], [.85, '#a34200'], [1, '#ffde65'],
   ]);
-  const depth = Math.max(7, Math.round(size * .065));
-  ctx.lineWidth = size * .13;
+  const depth = Math.max(7, Math.round(size * .085));
+  ctx.lineWidth = size * .17;
   // Solid extrusion keeps the edges crisp, including on transparent PNGs.
   for (let offset = depth; offset > 0; offset -= 2) {
-    ctx.strokeStyle = offset > depth - 4 ? '#08090b' : chrome;
+    ctx.strokeStyle = offset > depth - 3 ? '#08090b' : chrome;
     ctx.strokeText(text, offset * .25, offset);
     ctx.fillStyle = '#12151a';
     ctx.fillText(text, offset * .25, offset);
   }
 
-  for (const [width, color] of [[.13, '#06080c'], [.106, chrome], [.083, '#10151d'], [.062, silver ? chrome : gold], [.034, '#fff9d9'], [.018, silver ? '#35506b' : '#820400']]) {
-    ctx.lineWidth = size * width;
-    ctx.strokeStyle = color;
-    ctx.strokeText(text, 0, 0);
-  }
+  ctx.strokeStyle = '#05070b';
+  ctx.lineWidth = size * .18;
+  ctx.strokeText(text, 0, 0);
+  strokeBevel(ctx, text, size, .151, chrome, '#f6feff', '#162438');
+  ctx.strokeStyle = '#080c12';
+  ctx.lineWidth = size * .117;
+  ctx.strokeText(text, 0, 0);
+  strokeBevel(ctx, text, size, .094, silver ? chrome : gold,
+    silver ? '#fff' : '#fffbe0', silver ? '#173248' : '#813200');
+  // The recessed seam separates the raised metal rim from the enamel face.
+  ctx.lineWidth = size * .041;
+  ctx.strokeStyle = silver ? '#183348' : '#6e1000';
+  ctx.strokeText(text, 0, 0);
+  ctx.lineWidth = size * .028;
+  ctx.strokeStyle = silver ? '#e3f9ff' : '#fff2b0';
+  ctx.strokeText(text, -size * .003, -size * .003);
   ctx.fillStyle = gradient(silver ? [
     [0, '#fff'], [.25, '#fff'], [.46, '#d7f0fa'], [.49, '#9fbed0'],
     [.51, '#f9ffff'], [.78, '#fff'], [1, '#bed9e8'],
