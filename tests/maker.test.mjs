@@ -1,5 +1,17 @@
 import assert from 'node:assert/strict';
-import { displayText, fitFontSize } from '../app.js';
+import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
+
+// Direct file opening in Chrome requires a classic script, not an ES module.
+const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const script = html.match(/<script\b[^>]*\bsrc="app\.js(?:\?[^"\s]*)?"[^>]*>/)?.[0];
+assert.ok(script, 'index.html loads app.js');
+assert.doesNotMatch(script, /type\s*=\s*["']module["']/i,
+  'app.js must load as a classic script for file:// compatibility');
+const source = readFileSync(new URL('../app.js', import.meta.url), 'utf8');
+const app = {};
+runInNewContext(source, app, { filename: 'app.js' });
+const { displayText, fitFontSize } = app;
 
 assert.equal(displayText(''), '5000兆円欲しい!');
 assert.equal(displayText('3億円'), '3億円欲しい!');

@@ -2,12 +2,12 @@ const DEFAULT_TEXT = '5000兆円';
 const CANVAS_WIDTH = 1600;
 const CANVAS_HEIGHT = 900;
 
-export function displayText(value) {
+function displayText(value) {
   const text = value.trim() || DEFAULT_TEXT;
   return /欲しい[！!]?$/.test(text) ? text.replace(/！/g, '!') : `${text}欲しい!`;
 }
 
-export function fitFontSize(text, availableWidth, maximum, measuredWidth) {
+function fitFontSize(text, availableWidth, maximum, measuredWidth) {
   const width = measuredWidth ?? Math.max(Array.from(text).length, 1) * maximum * .92;
   return Math.max(1, Math.min(maximum, Math.floor(maximum * availableWidth / Math.max(width, 1))));
 }
@@ -117,7 +117,7 @@ function fittedCanvasSize(ctx, text, width, max, silver = false) {
   return size;
 }
 
-export function render(canvas, value, transparent) {
+function render(canvas, value, transparent) {
   const ctx = canvas.getContext('2d');
   const text = displayText(value);
   const suffix = '欲しい!';
